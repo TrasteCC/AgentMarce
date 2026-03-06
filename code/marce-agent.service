@@ -1,0 +1,49 @@
+# ============================================================
+# AgentMarce - Servicio systemd
+# Instalar en: /etc/systemd/system/marce-agent.service
+#
+# Comandos de gestion:
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable marce-agent   (auto-inicio)
+#   sudo systemctl start marce-agent
+#   sudo systemctl status marce-agent
+#   sudo journalctl -u marce-agent -f   (logs en tiempo real)
+# ============================================================
+
+[Unit]
+Description=AgentMarce - Agente de orquestacion de homelab
+Documentation=https://github.com/TrasteCC/AgentMarce
+After=network.target docker.service
+Wants=docker.service
+
+[Service]
+Type=simple
+User=agentuser
+Group=agentuser
+WorkingDirectory=/home/agentuser/agent-services/antigravity-agent
+
+# Cargar variables de entorno desde .env
+EnvironmentFile=/home/agentuser/agent-services/antigravity-agent/.env
+
+# Usar el Python del entorno virtual
+ExecStart=/home/agentuser/agent-services/antigravity-agent/.venv/bin/python api_server.py
+
+# Reiniciar automaticamente si el proceso falla
+Restart=always
+RestartSec=10
+
+# Limites de recursos (proteccion del sistema)
+MemoryMax=2G
+CPUQuota=150%
+
+# Seguridad del servicio
+NoNewPrivileges=yes
+PrivateTmp=yes
+
+# Logs de systemd
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=marce-agent
+
+[Install]
+WantedBy=multi-user.target

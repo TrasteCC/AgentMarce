@@ -1,0 +1,33 @@
+# Variables de entorno (NUNCA subir al repositorio)
+.env
+*.env
+.env.*
+!.env.example
+
+# Credenciales de Google (tokens OAuth2)
+config/google_token.json
+config/google_credentials.json
+
+# Entorno virtual de Python
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+
+# Logs
+logs/
+*.log
+
+# Modelos Ollama (son muy grandes)
+code/models/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+*.swp
