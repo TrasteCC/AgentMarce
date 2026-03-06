@@ -1,17 +1,17 @@
 """
-AgentMarce - Servidor FastAPI
-Expone el agente como API REST para que n8n pueda comunicarse con el.
+AgentMarce - FastAPI Server
+Exposes the agent as a REST API so n8n can communicate with it.
 
 Endpoints:
-    POST /agent/run   - Enviar un mensaje al agente
-    GET  /health      - Verificar que el servidor esta activo
-    GET  /status      - Estado detallado del sistema
+    POST /agent/run   - Send a message to the agent
+    GET  /health      - Check that the server is running
+    GET  /status      - Detailed system status
 
-Uso:
+Usage:
     source .venv/bin/activate
     python3 api_server.py
 
-    O via systemd:
+    Or via systemd:
     sudo systemctl start marce-agent
 """
 
@@ -27,7 +27,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Configurar logging
 logging.basicConfig(
     filename='/var/log/agent-marce.log',
     level=logging.INFO,
@@ -35,22 +34,21 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Importar el agente
 from agent import agent
 
 app = FastAPI(
     title="AgentMarce API",
-    description="API REST del agente de orquestacion de homelab",
+    description="REST API for the homelab orchestration agent",
     version="1.0.0"
 )
 
 
-# ── Modelos de datos ───────────────────────────────────────────────
+# ── Data models ───────────────────────────────────────────────────
 
 class AgentRequest(BaseModel):
     input: str
     user: str = "unknown"
-    channel: str = "api"   # "telegram", "slack", "api"
+    channel: str = "api"    # "telegram", "slack", "api"
 
 class AgentResponse(BaseModel):
     response: str
@@ -60,7 +58,7 @@ class AgentResponse(BaseModel):
     success: bool
 
 
-# ── Middleware de logging ──────────────────────────────────────────
+# ── Logging middleware ────────────────────────────────────────────
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -70,28 +68,28 @@ async def log_requests(request: Request, call_next):
     return response
 
 
-# ── Endpoints ──────────────────────────────────────────────────────
+# ── Endpoints ─────────────────────────────────────────────────────
 
 @app.post("/agent/run", response_model=AgentResponse)
 async def run_agent(request: AgentRequest):
     """
-    Envia un mensaje al agente y devuelve la respuesta.
+    Sends a message to the agent and returns the response.
 
     Body:
-        input   (str): El mensaje del usuario
-        user    (str): Nombre o ID del usuario (para logs)
-        channel (str): Canal de origen ("telegram", "slack", "api")
+        input   (str): The user's message
+        user    (str): User name or ID (for logs)
+        channel (str): Origin channel ("telegram", "slack", "api")
     """
     if not request.input.strip():
-        raise HTTPException(status_code=400, detail="El campo 'input' no puede estar vacio")
+        raise HTTPException(status_code=400, detail="The 'input' field cannot be empty")
 
     if len(request.input) > 4096:
-        raise HTTPException(status_code=400, detail="El mensaje supera el limite de 4096 caracteres")
+        raise HTTPException(status_code=400, detail="Message exceeds the 4096-character limit")
 
     logger.info(f"Agent request from {request.user} via {request.channel}: {request.input[:100]}...")
 
     try:
-        contextualized_input = f"[Usuario: {request.user}] {request.input}"
+        contextualized_input = f"[User: {request.user}] {request.input}"
         response = agent.run(contextualized_input)
         response_text = str(response)
 
@@ -106,18 +104,18 @@ async def run_agent(request: AgentRequest):
         )
     except Exception as e:
         logger.error(f"Agent error: {e}")
-        raise HTTPException(status_code=500, detail=f"Error interno del agente: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal agent error: {str(e)}")
 
 
 @app.get("/health")
 async def health_check():
-    """Verificacion rapida de que el servidor esta activo."""
+    """Quick check that the server is running."""
     return {"status": "ok", "timestamp": datetime.now().isoformat()}
 
 
 @app.get("/status")
 async def system_status():
-    """Estado detallado del sistema: Ollama, variables de entorno, etc."""
+    """Detailed system status: Ollama, environment variables, etc."""
     import requests
 
     status = {
@@ -127,7 +125,7 @@ async def system_status():
         "env_vars": {}
     }
 
-    # Verificar Ollama
+    # Check Ollama
     try:
         ollama_resp = requests.get(
             f"{os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')}/api/version",
@@ -137,7 +135,7 @@ async def system_status():
     except Exception:
         status["ollama"] = "unreachable"
 
-    # Verificar variables criticas (sin revelar valores)
+    # Check critical variables (without revealing values)
     critical_vars = [
         "OLLAMA_BASE_URL", "GROQ_API_KEY", "TELEGRAM_BOT_TOKEN",
         "HOME_ASSISTANT_URL", "PROXMOX_HOST"
@@ -148,10 +146,10 @@ async def system_status():
     return JSONResponse(content=status)
 
 
-# ── Arranque del servidor ──────────────────────────────────────────
+# ── Server startup ─────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    print("Iniciando AgentMarce API en http://0.0.0.0:8080")
+    print("Starting AgentMarce API at http://0.0.0.0:8080")
     uvicorn.run(
         app,
         host="0.0.0.0",

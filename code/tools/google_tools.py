@@ -1,10 +1,10 @@
 """
-AgentMarce - Herramientas de Google APIs
-Gmail, Google Calendar y Google Drive (acceso de solo lectura)
+AgentMarce - Google API Tools
+Gmail, Google Calendar and Google Drive (read-only access)
 
-Primera vez:
+First-time setup:
     python3 -c "from tools.google_tools import get_today_calendar_events; print(get_today_calendar_events())"
-    Se abrira el navegador para autorizar. Guarda el token resultante.
+    A browser will open to authorize. The resulting token is saved automatically.
 """
 
 import os
@@ -30,7 +30,7 @@ CREDENTIALS_PATH = os.getenv(
 
 
 def _get_google_service(service_name: str, version: str):
-    """Obtiene un servicio autenticado de Google. Maneja refresh de tokens."""
+    """Returns an authenticated Google service client. Handles token refresh."""
     from google.oauth2.credentials import Credentials
     from google_auth_oauthlib.flow import InstalledAppFlow
     from googleapiclient.discovery import build
@@ -46,8 +46,8 @@ def _get_google_service(service_name: str, version: str):
         else:
             if not os.path.exists(CREDENTIALS_PATH):
                 raise FileNotFoundError(
-                    f"No se encontro el archivo de credenciales en {CREDENTIALS_PATH}. "
-                    "Descargalo desde Google Cloud Console."
+                    f"Credentials file not found at {CREDENTIALS_PATH}. "
+                    "Download it from Google Cloud Console."
                 )
             flow = InstalledAppFlow.from_client_secrets_file(CREDENTIALS_PATH, SCOPES)
             creds = flow.run_local_server(port=0)
@@ -59,13 +59,13 @@ def _get_google_service(service_name: str, version: str):
 
 def get_unread_emails(max_results: int = 10) -> str:
     """
-    Obtiene los emails no leidos de Gmail.
+    Retrieves unread emails from Gmail.
 
     Args:
-        max_results: Numero maximo de emails a recuperar (default: 10, maximo: 20)
+        max_results: Maximum number of emails to retrieve (default: 10, max: 20)
 
     Returns:
-        Lista de emails no leidos con remitente, asunto y fecha.
+        List of unread emails with sender, subject, and date.
     """
     max_results = min(max_results, 20)
 
@@ -79,7 +79,7 @@ def get_unread_emails(max_results: int = 10) -> str:
 
         messages = results.get('messages', [])
         if not messages:
-            return "No hay emails no leidos."
+            return "No unread emails."
 
         emails_info = []
         for msg in messages[:5]:
@@ -92,26 +92,26 @@ def get_unread_emails(max_results: int = 10) -> str:
 
             headers = {h['name']: h['value'] for h in msg_data['payload']['headers']}
             emails_info.append(
-                f"- De: {headers.get('From', 'N/A')}\n"
-                f"  Asunto: {headers.get('Subject', 'Sin asunto')}\n"
-                f"  Fecha: {headers.get('Date', 'N/A')}"
+                f"- From: {headers.get('From', 'N/A')}\n"
+                f"  Subject: {headers.get('Subject', 'No subject')}\n"
+                f"  Date: {headers.get('Date', 'N/A')}"
             )
 
         total = len(messages)
         shown = min(5, total)
-        header = f"Emails no leidos: {total} total (mostrando {shown}):\n"
+        header = f"Unread emails: {total} total (showing {shown}):\n"
         return header + "\n".join(emails_info)
 
     except Exception as e:
-        return f"Error obteniendo emails: {e}"
+        return f"Error retrieving emails: {e}"
 
 
 def get_today_calendar_events() -> str:
     """
-    Obtiene los eventos del calendario de Google de hoy.
+    Retrieves today's events from Google Calendar.
 
     Returns:
-        Lista de eventos del dia con hora y titulo.
+        List of today's events with time and title.
     """
     from datetime import datetime, timezone
 
@@ -132,38 +132,37 @@ def get_today_calendar_events() -> str:
 
         events = events_result.get('items', [])
         if not events:
-            return "No tienes eventos programados para hoy."
+            return "No events scheduled for today."
 
         eventos = []
         for event in events:
             start = event['start'].get('dateTime', event['start'].get('date'))
-            # Simplificar formato de hora
             if 'T' in start:
-                hora = start.split('T')[1][:5]  # HH:MM
+                time_str = start.split('T')[1][:5]  # HH:MM
             else:
-                hora = "Todo el dia"
-            titulo = event.get('summary', 'Sin titulo')
+                time_str = "All day"
+            title = event.get('summary', 'No title')
             location = event.get('location', '')
             location_str = f" @ {location}" if location else ""
-            eventos.append(f"  {hora} - {titulo}{location_str}")
+            eventos.append(f"  {time_str} - {title}{location_str}")
 
-        today_str = now.strftime('%A %d de %B')
-        return f"Eventos de hoy ({today_str}):\n" + "\n".join(eventos)
+        today_str = now.strftime('%A, %B %d')
+        return f"Today's events ({today_str}):\n" + "\n".join(eventos)
 
     except Exception as e:
-        return f"Error obteniendo calendario: {e}"
+        return f"Error retrieving calendar: {e}"
 
 
 def search_drive_files(query: str, max_results: int = 5) -> str:
     """
-    Busca archivos en Google Drive.
+    Searches for files in Google Drive.
 
     Args:
-        query: Termino de busqueda (ej: "informe presupuesto 2024")
-        max_results: Numero maximo de resultados (default: 5)
+        query: Search term (e.g. "budget report 2024")
+        max_results: Maximum number of results (default: 5)
 
     Returns:
-        Lista de archivos encontrados con nombre y enlace.
+        List of matching files with name and link.
     """
     try:
         service = _get_google_service('drive', 'v3')
@@ -176,20 +175,20 @@ def search_drive_files(query: str, max_results: int = 5) -> str:
 
         files = results.get('files', [])
         if not files:
-            return f"No se encontraron archivos para: '{query}'"
+            return f"No files found for: '{query}'"
 
         files_info = []
         for f in files:
             modified = f.get('modifiedTime', 'N/A')[:10]
             file_type = f.get('mimeType', '').split('.')[-1]
-            link = f.get('webViewLink', 'sin enlace')
+            link = f.get('webViewLink', 'no link')
             files_info.append(
                 f"- {f['name']} ({file_type})\n"
-                f"  Modificado: {modified}\n"
-                f"  Enlace: {link}"
+                f"  Modified: {modified}\n"
+                f"  Link: {link}"
             )
 
-        return f"Archivos encontrados ({len(files)}):\n" + "\n".join(files_info)
+        return f"Files found ({len(files)}):\n" + "\n".join(files_info)
 
     except Exception as e:
-        return f"Error buscando en Drive: {e}"
+        return f"Error searching Drive: {e}"

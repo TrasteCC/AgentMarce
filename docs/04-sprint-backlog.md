@@ -1,42 +1,42 @@
-# 4. Sprint Backlog: Plan de Implementacion Detallado
+# 4. Sprint Backlog: Detailed Implementation Plan
 
-> Cada bloque es independiente (modular). Puedes pausar y retomar en cualquier punto.
-> Estimacion total: 4 semanas a ~2-3 horas por dia.
+> Each block is independent (modular). You can pause and resume at any point.
+> Total estimate: 4 weeks at ~2-3 hours per day.
 
 ---
 
-## SEMANA 1 — Infraestructura Base
+## WEEK 1 — Base Infrastructure
 
-### Dia 1 (3 horas): VM del Agente en Unraid
+### Day 1 (3 hours): Agent VM on Unraid
 
-**Bloque 1A (1.5h): Crear la VM**
+**Block 1A (1.5h): Create the VM**
 
 - Unraid UI → `VMs` → `Add VM`
-- Tipo: Linux
-- OS: Ubuntu Server 24.04 LTS (descargar ISO desde ubuntu.com/download/server)
-- CPU: `6 vCPUs` (activar CPU Pinning, seleccionar threads 2-7)
+- Type: Linux
+- OS: Ubuntu Server 24.04 LTS (download ISO from ubuntu.com/download/server)
+- CPU: `6 vCPUs` (enable CPU Pinning, select threads 2-7)
 - RAM: `12288 MB` (12 GB)
 - Primary vDisk: `100 GB`
 - Network Bridge: `br0`
 - Click `Create`
 
-**Bloque 1B (1.5h): Instalar Ubuntu Server**
+**Block 1B (1.5h): Install Ubuntu Server**
 
-Durante la instalacion de Ubuntu:
+During Ubuntu installation:
 - Hostname: `agent-vm`
-- Usuario: `agentuser`
-- Instalar OpenSSH Server: **SI**
+- Username: `agentuser`
+- Install OpenSSH Server: **YES**
 
-Conectar por SSH desde tu PC:
+Connect via SSH from your PC:
 ```bash
-ssh agentuser@<IP_DE_LA_VM>
+ssh agentuser@<VM_IP_ADDRESS>
 ```
 
 ---
 
-### Dia 2 (2 horas): Docker + Ollama
+### Day 2 (2 hours): Docker + Ollama
 
-**Bloque 2A (45 min): Instalar Docker**
+**Block 2A (45 min): Install Docker**
 
 ```bash
 sudo apt update && sudo apt upgrade -y
@@ -47,22 +47,22 @@ sudo apt install docker-compose-plugin -y
 docker --version
 ```
 
-**Bloque 2B (1h 15min): Configurar Ollama**
+**Block 2B (1h 15min): Set up Ollama**
 
 ```bash
 mkdir -p ~/agent-services/ollama
 cd ~/agent-services/ollama
-# Copiar docker-compose.yml de este repositorio
+# Copy docker-compose.yml from this repository
 docker compose up -d
 docker exec ollama-cpu ollama pull qwen2.5:1.5b
-docker exec ollama-cpu ollama run qwen2.5:1.5b "di hola en 3 palabras"
+docker exec ollama-cpu ollama run qwen2.5:1.5b "say hello in 3 words"
 ```
 
 ---
 
-### Dia 3 (2.5 horas): Python + Google ADK
+### Day 3 (2.5 hours): Python + Google ADK
 
-**Bloque 3A (45 min): Entorno virtual Python**
+**Block 3A (45 min): Python virtual environment**
 
 ```bash
 sudo apt install python3-pip python3-venv -y
@@ -72,7 +72,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 ```
 
-**Bloque 3B (1h 45min): Instalar dependencias**
+**Block 3B (1h 45min): Install dependencies**
 
 ```bash
 pip install google-adk \
@@ -93,80 +93,80 @@ python3 -c "import google.adk; print('ADK OK')"
 
 ---
 
-### Dia 4 (3 horas): Estructura del Agente
+### Day 4 (3 hours): Agent Structure
 
-**Bloque 4A: Crear estructura de archivos**
+**Block 4A: Create the file structure**
 
 ```bash
 cd ~/agent-services/antigravity-agent
 mkdir -p tools logs config
 ```
 
-**Bloque 4B: Configurar variables de entorno**
+**Block 4B: Configure environment variables**
 
-Copiar `.env.example` de este repositorio a `.env` y rellenar los valores:
+Copy `.env.example` from this repository to `.env` and fill in the values:
 
 ```bash
 cp .env.example .env
 nano .env
 ```
 
-**Bloque 4C: Copiar y probar el agente**
+**Block 4C: Copy and test the agent**
 
 ```bash
-# Copiar agent.py y api_server.py de este repositorio
+# Copy agent.py and api_server.py from this repository
 python3 agent.py
-# Escribe "estado de proxmox" para probar
+# Type "check proxmox status" to test
 ```
 
 ---
 
-## SEMANA 2 — n8n como Sistema Nervioso
+## WEEK 2 — n8n as the Nervous System
 
-### Dia 5 (2.5 horas): Workflow Telegram en n8n
+### Day 5 (2.5 hours): Telegram Workflow in n8n
 
-Crear un nuevo workflow en n8n con estos nodos en orden:
+Create a new workflow in n8n with these nodes in order:
 
 ```
-[Telegram Trigger] → [IF clasificador] → [Ruta A: Ollama] → [Telegram Send]
-                                       → [Ruta B: Agente]  ↗
+[Telegram Trigger] → [IF classifier] → [Route A: Ollama] → [Telegram Send]
+                                      → [Route B: Agent]  ↗
 ```
 
-**Nodo 1 - Telegram Trigger:**
-- Tipo: `Telegram Trigger`
+**Node 1 - Telegram Trigger:**
+- Type: `Telegram Trigger`
 - Events: `Message`
 
-**Nodo 2 - IF Clasificador:**
-- Valor 1: `{{ $json.message.text }}`
-- Operacion: `Regex`
-- Valor 2: `^(enciende|apaga|estado|toggle|luz|switch|lampara|abre|cierra)`
+**Node 2 - IF Classifier:**
+- Value 1: `{{ $json.message.text }}`
+- Operation: `Regex`
+- Value 2: `^(turn on|turn off|toggle|light|switch|open|close)`
 
-**Nodo 3A (TRUE) - Ollama Directo:**
-- Tipo: HTTP Request
+**Node 3A (TRUE) - Ollama Direct:**
+- Type: HTTP Request
 - Method: POST
-- URL: `http://IP_VM:11434/api/generate`
-- Body: ver seccion de arquitectura
+- URL: `http://VM_IP:11434/api/generate`
+- Body: see architecture section
 
-**Nodo 3B (FALSE) - Agente Completo:**
-- Tipo: HTTP Request
+**Node 3B (FALSE) - Full Agent:**
+- Type: HTTP Request
 - Method: POST
-- URL: `http://IP_VM:8080/agent/run`
+- URL: `http://VM_IP:8080/agent/run`
 
-**Nodo 4 - Telegram Send:**
-- Operacion: Send Message
+**Node 4 - Telegram Send:**
+- Operation: Send Message
 - Chat ID: `{{ $('Telegram Trigger').item.json.message.chat.id }}`
 
 ---
 
-### Dia 6 (2 horas): Servidor API del Agente
+### Day 6 (2 hours): Agent API Server
 
-**Bloque 6A: Iniciar el servidor FastAPI**
+**Block 6A: Start the FastAPI server**
 
 ```bash
 cd ~/agent-services/antigravity-agent
 source .venv/bin/activate
 
-# Copiar marce-agent.service a /etc/systemd/system/
+# Copy marce-agent.service to /etc/systemd/system/
 sudo cp marce-agent.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable marce-agent
@@ -174,112 +174,112 @@ sudo systemctl start marce-agent
 sudo systemctl status marce-agent
 ```
 
-**Bloque 6B: Probar desde n8n**
+**Block 6B: Test from n8n**
 
 ```bash
-# Desde la VM, probar que el servidor responde
+# From the VM, test that the server responds
 curl -X POST http://localhost:8080/agent/run \
   -H "Content-Type: application/json" \
-  -d '{"input": "cual es el estado de proxmox", "user": "test"}'
+  -d '{"input": "what is the proxmox status", "user": "test"}'
 ```
 
 ---
 
-### Dia 7 (3 horas): Workflow de Log Review Diario
+### Day 7 (3 hours): Daily Log Review Workflow
 
-**Bloque 7A: Preparar el script de logs**
+**Block 7A: Prepare the log collection script**
 
 ```bash
-# Copiar collect_logs.sh de este repositorio
+# Copy collect_logs.sh from this repository
 mkdir -p ~/agent-services/antigravity-agent/tools
 cp collect_logs.sh ~/agent-services/antigravity-agent/tools/
 chmod +x ~/agent-services/antigravity-agent/tools/collect_logs.sh
 
-# Probar manualmente
+# Test manually
 bash ~/agent-services/antigravity-agent/tools/collect_logs.sh
 ```
 
-**Bloque 7B: Workflow n8n de revision diaria**
+**Block 7B: n8n daily review workflow**
 
 ```
-[Schedule: 08:00 AM] → [SSH: ejecuta collect_logs.sh] → [HTTP: Groq API] → [Telegram Send]
+[Schedule: 08:00 AM] → [SSH: run collect_logs.sh] → [HTTP: Groq API] → [Telegram Send]
 ```
 
 - Schedule Trigger: Cron `0 8 * * *`
-- SSH: conectar a la VM, ejecutar el script
-- HTTP Request a Groq: enviar los logs para analisis
-- Telegram: enviar el reporte resumido
+- SSH: connect to VM, run the script
+- HTTP Request to Groq: send logs for analysis
+- Telegram: send the summarized report
 
 ---
 
-## SEMANA 3 — Integraciones Avanzadas
+## WEEK 3 — Advanced Integrations
 
-### Dias 8-9 (4 horas total): Google APIs (OAuth2)
+### Days 8-9 (4 hours total): Google APIs (OAuth2)
 
-**Paso 1: Crear proyecto en Google Cloud Console**
-1. Ir a console.cloud.google.com
-2. Crear Proyecto: `AgentMarce`
-3. Habilitar APIs: Gmail API, Google Drive API, Google Calendar API
-4. Crear credenciales OAuth2 (tipo "Aplicacion de escritorio")
-5. Descargar JSON → guardar como `config/google_credentials.json` en la VM
+**Step 1: Create a Google Cloud Console project**
+1. Go to console.cloud.google.com
+2. Create Project: `AgentMarce`
+3. Enable APIs: Gmail API, Google Drive API, Google Calendar API
+4. Create OAuth2 credentials (type "Desktop application")
+5. Download JSON → save as `config/google_credentials.json` on the VM
 
-**Paso 2: Primera autenticacion**
+**Step 2: First-time authentication**
 
 ```bash
 cd ~/agent-services/antigravity-agent
 source .venv/bin/activate
 python3 -c "from tools.google_tools import get_today_calendar_events; print(get_today_calendar_events())"
-# Se abrira un navegador para autorizar — solo la primera vez
+# A browser will open to authorize — only needed once
 ```
 
 ---
 
-### Dia 10 (2 horas): Integracion Slack
+### Day 10 (2 hours): Slack Integration
 
-**Paso 1: Crear Slack App**
+**Step 1: Create a Slack App**
 1. api.slack.com/apps → Create New App
 2. OAuth & Permissions → Bot Token Scopes: `chat:write`, `channels:read`, `im:history`
-3. Event Subscriptions → URL: `https://TU_N8N_URL/webhook/slack-events`
-4. Subscribe: `message.im`, `app_mention`
+3. Event Subscriptions → URL: `https://YOUR_N8N_URL/webhook/slack-events`
+4. Subscribe to: `message.im`, `app_mention`
 
-**Paso 2: Duplicar workflow de Telegram en n8n**
-- Cambiar Trigger por `Slack Trigger`
-- Cambiar respuesta por nodo `Slack → Post Message`
+**Step 2: Duplicate the Telegram workflow in n8n**
+- Change the Trigger to `Slack Trigger`
+- Change the response to a `Slack → Post Message` node
 
 ---
 
-## SEMANA 4 — Acceso Seguro a Terminal y Pulido
+## WEEK 4 — Secure Terminal Access and Polish
 
-### Dias 11-12 (4 horas): Terminal con Least Privilege
+### Days 11-12 (4 hours): Terminal with Least Privilege
 
-Ver `/docs/05-seguridad.md` para la configuracion completa del acceso restringido a terminal.
+See `/docs/05-security.md` for the full restricted terminal setup.
 
 ```bash
-# En Unraid host (no en la VM)
+# On the Unraid host (not inside the VM)
 adduser agent-runner --disabled-password
 mkdir -p /usr/local/agent-scripts
-# Copiar whitelist.sh del repositorio
+# Copy whitelist.sh from this repository
 chmod +x /usr/local/agent-scripts/whitelist.sh
 echo "agent-runner ALL=(ALL) NOPASSWD: /usr/local/agent-scripts/whitelist.sh" >> /etc/sudoers
 ```
 
-### Dias 13-14 (4 horas): Testing y Alertas
+### Days 13-14 (4 hours): Testing and Alerts
 
-**Checklist de pruebas:**
-- [ ] Telegram: "apaga la luz del salon" → HA ejecuta la accion
-- [ ] Telegram: "analiza los logs de hoy" → Groq responde con resumen
-- [ ] Reporte diario llega a las 8:00 AM
-- [ ] Telegram: "cuantas VMs tiene proxmox" → respuesta correcta
-- [ ] Telegram: "que eventos tengo hoy" → Google Calendar responde
-- [ ] Slack: los mismos tests anteriores
-- [ ] La VM no supera 10 GB de RAM en uso normal
-- [ ] Ollama se descarga de RAM cuando esta inactivo
+**Testing checklist:**
+- [ ] Telegram: "turn off the living room light" → HA executes the action
+- [ ] Telegram: "analyze today's logs" → Groq responds with a summary
+- [ ] Daily report arrives at 8:00 AM
+- [ ] Telegram: "how many VMs does Proxmox have" → correct response
+- [ ] Telegram: "what events do I have today" → Google Calendar responds
+- [ ] Slack: same tests as above
+- [ ] VM does not exceed 10 GB RAM under normal usage
+- [ ] Ollama unloads from RAM when idle
 
 ---
 
-## Notas de Implementacion
+## Implementation Notes
 
-- **Principio de una cosa a la vez:** Completa y prueba cada bloque antes de pasar al siguiente.
-- **Guarda las API keys desde el principio:** Rellena el `.env` en el Dia 4 con todas las keys que ya tengas.
-- **n8n es tu aliado:** Casi toda la logica de conexion vive en n8n, no en Python. Python es el cerebro, n8n son los nervios.
-- **Si algo falla:** Revisa primero `sudo systemctl status marce-agent` y `docker logs ollama-cpu`.
+- **One thing at a time:** Complete and test each block before moving to the next.
+- **Save API keys from the start:** Fill in `.env` on Day 4 with all the keys you already have.
+- **n8n is your ally:** Almost all connection logic lives in n8n, not Python. Python is the brain, n8n is the nervous system.
+- **If something fails:** Check `sudo systemctl status marce-agent` and `docker logs ollama-cpu` first.

@@ -1,14 +1,14 @@
-# Variables de entorno (NUNCA subir al repositorio)
+# Environment variables (NEVER commit to the repository)
 .env
 *.env
 .env.*
 !.env.example
 
-# Credenciales de Google (tokens OAuth2)
+# Google OAuth2 tokens
 config/google_token.json
 config/google_credentials.json
 
-# Entorno virtual de Python
+# Python virtual environment
 .venv/
 venv/
 env/
@@ -20,14 +20,14 @@ __pycache__/
 logs/
 *.log
 
-# Modelos Ollama (son muy grandes)
+# Ollama models (too large to commit)
 code/models/
 
-# Sistema operativo
+# Operating system files
 .DS_Store
 Thumbs.db
 
-# IDEs
+# IDE files
 .vscode/
 .idea/
 *.swp

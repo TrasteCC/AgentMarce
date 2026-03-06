@@ -1,32 +1,32 @@
-# 1. Arquitectura Logica y Ecosistema n8n
+# 1. Logical Architecture and n8n Ecosystem
 
-## Diagrama de Flujo del Sistema
+## System Flow Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    CAPA DE ENTRADA (Interfaces)                  │
-│   [Telegram Bot]          [Slack App]          [Scheduler n8n]  │
+│                      INPUT LAYER (Interfaces)                    │
+│   [Telegram Bot]          [Slack App]          [n8n Scheduler]  │
 └──────────────┬─────────────────┬──────────────────┬────────────┘
                │   Webhooks      │   Events API      │  Cron Jobs
                ▼                 ▼                   ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│              n8n  (Sistema Nervioso Central)                     │
+│                  n8n  (Central Nervous System)                   │
 │  ┌──────────────────────────────────────────────────────────┐   │
 │  │  Workflow 1: Intake & Router                             │   │
-│  │  [Recibe mensaje] → [Clasifica complejidad] → [Decide]   │   │
+│  │  [Receive message] → [Classify complexity] → [Decide]    │   │
 │  └────────────────────────┬─────────────────────────────────┘   │
 │              ┌────────────┴────────────┐                        │
 │              ▼                         ▼                        │
 │  ┌─────────────────────┐  ┌──────────────────────────────┐      │
-│  │  Ruta A: LOCAL      │  │  Ruta B: CLOUD               │      │
+│  │  Route A: LOCAL     │  │  Route B: CLOUD              │      │
 │  │  Ollama GGUF (VM)   │  │  Groq / OpenRouter / Gemini  │      │
-│  │  Tareas simples     │  │  Logs, razonamiento complejo  │      │
+│  │  Simple tasks       │  │  Logs, complex reasoning     │      │
 │  └──────────┬──────────┘  └──────────────┬───────────────┘      │
 │             └────────────────────────────┘                      │
 │                          ▼                                      │
 │  ┌──────────────────────────────────────────────────────────┐   │
 │  │  Workflow 2: Agent Executor (Antigravity ADK)            │   │
-│  │  [Recibe respuesta LLM] → [Ejecuta Tool/Accion]          │   │
+│  │  [Receive LLM response] → [Execute Tool/Action]          │   │
 │  └──────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────┘
                           │
@@ -38,83 +38,83 @@
 └──────────────┘  └──────────────┘  └──────────────────┘
 ```
 
-## Roles de Cada Componente
+## Role of Each Component
 
-| Componente | Rol | Por que esta eleccion |
+| Component | Role | Why this choice |
 |---|---|---|
-| **n8n** | Sistema nervioso, router, scheduler | Ya disponible, visual, sin necesidad de codigo |
-| **Antigravity ADK** | Cerebro agentico, gestion de herramientas, memoria | Framework oficial Google para multi-agente |
-| **Ollama (Docker)** | Inferencia local CPU para tareas simples | Control total de RAM/CPU, sin API key |
-| **Groq** | Analisis de logs (capa gratuita, ultra-rapido) | 30 req/min gratis, ~6000 tok/s vs ~10 tok/s local |
-| **OpenRouter** | Fallback y tareas complejas | Acceso a Claude/GPT/Gemini en un endpoint |
+| **n8n** | Nervous system, router, scheduler | Already available, visual, no code needed |
+| **Antigravity ADK** | Agentic brain, tool management, memory | Official Google multi-agent framework |
+| **Ollama (Docker)** | Local CPU inference for simple tasks | Full RAM/CPU control, no API key required |
+| **Groq** | Log analysis (free tier, ultra-fast) | 30 req/min free, ~6000 tok/s vs ~10 tok/s local |
+| **OpenRouter** | Fallback and complex tasks | Single endpoint for Claude/GPT/Gemini |
 
-## Tabla de Enrutamiento de Tareas
+## Task Routing Table
 
-La decision mas critica del sistema: **sin GPU, el LLM local es lento**. Un log de 500 lineas
-tardaria 45-90 segundos procesado localmente. Por eso el LLM local actua solo como clasificador
-de intenciones y ejecutor de comandos simples predefinidos.
+The most critical design decision: **without a GPU, the local LLM is slow**. A 500-line log
+file would take 45-90 seconds processed locally. The local LLM is used EXCLUSIVELY as an
+intent classifier and executor of simple predefined commands.
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│           TABLA DE ENRUTAMIENTO DE TAREAS               │
+│                  TASK ROUTING TABLE                     │
 ├─────────────────────┬───────────────────────────────────┤
 │  OLLAMA LOCAL       │  GROQ / OPENROUTER (Cloud)        │
-│  (< 2 seg respuesta)│  (Tarea pesada / latencia ok)     │
+│  (< 2s response)    │  (heavy task / latency ok)        │
 ├─────────────────────┼───────────────────────────────────┤
-│ "Apaga la luz X"    │ Analisis diario de logs           │
-│ "Esta Proxmox ok?"  │ Resumen de emails (Gmail)         │
-│ Clasificar intent   │ Generacion de reportes            │
-│ Comandos HA simples │ Investigacion web (browser agent) │
-│ On/Off switches     │ Procesamiento Google Drive        │
-│ Router de intencion │ Razonamiento complejo multi-paso  │
+│ "Turn off light X"  │ Daily log analysis                │
+│ "Is Proxmox up?"    │ Email summarization (Gmail)       │
+│ Intent classifier   │ Report generation                 │
+│ Simple HA commands  │ Web research (browser agent)      │
+│ On/Off switches     │ Google Drive processing           │
+│ Intent router       │ Complex multi-step reasoning      │
 └─────────────────────┴───────────────────────────────────┘
 ```
 
-## Flujo Detallado de un Mensaje
+## Detailed Message Flow
 
 ```
-Usuario escribe en Telegram: "Apaga las luces del salon"
+User types in Telegram: "Turn off the living room lights"
         │
         ▼
-n8n Telegram Trigger recibe el webhook
+n8n Telegram Trigger receives the webhook
         │
         ▼
-Nodo IF: ¿Coincide con regex de comandos simples?
-(^(enciende|apaga|estado|toggle|luz|switch|lampara))
+IF node: Does it match the simple command regex?
+(^(turn on|turn off|toggle|light|switch|open|close))
         │
-    SÍ  │  NO
-        │   └──→ HTTP POST a /agent/run (Python ADK completo)
+    YES │  NO
+        │   └──→ HTTP POST to /agent/run (full Python ADK)
         ▼
-HTTP POST a Ollama: extrae entity_id y accion en JSON
-        │
-        ▼
-n8n ejecuta HTTP POST a Home Assistant REST API
+HTTP POST to Ollama: extract entity_id and action as JSON
         │
         ▼
-n8n envia confirmacion por Telegram: "Luces del salon apagadas"
+n8n executes HTTP POST to Home Assistant REST API
+        │
+        ▼
+n8n sends Telegram confirmation: "Living room lights turned off"
 ```
 
-## Flujo de Log Review Diario (Automatico)
+## Daily Log Review Flow (Automatic)
 
 ```
-08:00 AM → Schedule Trigger en n8n
+08:00 AM → Schedule Trigger in n8n
         │
         ▼
-SSH a la VM → ejecuta collect_logs.sh
+SSH to VM → runs collect_logs.sh
         │
         ▼
-Texto de logs → HTTP POST a Groq API (analisis pesado)
+Log text → HTTP POST to Groq API (heavy analysis)
         │
         ▼
-Groq devuelve resumen en bullets
+Groq returns bullet-point summary
         │
         ▼
-n8n envia el reporte por Telegram
+n8n sends the report via Telegram
 ```
 
-## Principios de Diseno
+## Design Principles
 
-1. **Modularidad**: Cada capacidad es un bloque independiente. Puedes tener solo Telegram sin Slack, o solo HA sin Proxmox.
-2. **Least Privilege**: El agente solo tiene acceso a lo estrictamente necesario en cada sistema.
-3. **Fallback graceful**: Si Ollama esta caido, n8n redirige a Groq. Si Groq falla, va a OpenRouter.
-4. **Observabilidad**: Todos los logs del agente se guardan en `/var/log/agent-marce.log`.
+1. **Modularity**: Each capability is an independent block. You can have just Telegram without Slack, or just HA without Proxmox.
+2. **Least Privilege**: The agent only has access to what it strictly needs in each system.
+3. **Graceful fallback**: If Ollama is down, n8n redirects to Groq. If Groq fails, it falls back to OpenRouter.
+4. **Observability**: All agent logs are saved to `/var/log/agent-marce.log`.

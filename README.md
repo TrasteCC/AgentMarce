@@ -1,82 +1,82 @@
-# AgentMarce — Agente de IA para Orquestación de Homelab
+# AgentMarce — AI Agent for Homelab Orchestration
 
-Arquitectura completa y plan de implementación para construir un agente de IA personal que orquesta infraestructura Homelab (Unraid, Proxmox, Home Assistant) usando Google ADK, n8n y enrutamiento dinámico de LLMs.
+Full architecture and implementation plan for building a personal AI agent that orchestrates homelab infrastructure (Unraid, Proxmox, Home Assistant) using Google ADK, n8n, and dynamic LLM routing.
 
-## Hardware Objetivo
+## Target Hardware
 
-| Componente | Especificación |
+| Component | Specification |
 |---|---|
-| Host | Dell Precision 3640 Torre |
+| Host | Dell Precision 3640 Tower |
 | CPU | Intel Core i7-10700 (8 cores / 16 threads) |
 | RAM | 32 GB DDR4 |
-| Almacenamiento | 512 GB NVMe |
-| GPU | **Ninguna** (inferencia por CPU) |
+| Storage | 512 GB NVMe |
+| GPU | **None** (CPU-only inference) |
 
-## Infraestructura
+## Infrastructure
 
-- **Unraid** — Host principal y sistema operativo del servidor
-- **Proxmox** — Hipervisor de VMs adicionales
-- **Home Assistant** — Domótica y automatización del hogar
-- **n8n** — Automatización Low-Code (sistema nervioso del agente)
+- **Unraid** — Primary host and server OS
+- **Proxmox** — Additional VM hypervisor
+- **Home Assistant** — Home automation
+- **n8n** — Low-Code automation (agent's nervous system)
 
-## Capacidades del Agente
+## Agent Capabilities
 
-- Interfaces de comunicacion via **Telegram** y **Slack**
-- Revision diaria automatica de logs (Unraid, Proxmox, Home Assistant, n8n)
-- Acceso controlado a terminal (lista blanca de comandos)
-- Navegacion web agéntica
-- Integracion OAuth2 con **Google Drive**, **Gmail** y **Google Calendar**
-- Enrutamiento dinamico de LLMs: Groq, OpenRouter, Qwen, OpenAI, Gemini, Claude
-- LLM local GGUF via Ollama para tareas simples (sin GPU, inferencia CPU)
+- Communication interfaces via **Telegram** and **Slack**
+- Automated daily log review (Unraid, Proxmox, Home Assistant, n8n)
+- Controlled terminal access (command whitelist)
+- Agentic web browsing
+- OAuth2 integration with **Google Drive**, **Gmail**, and **Google Calendar**
+- Dynamic LLM routing: Groq, OpenRouter, Qwen, OpenAI, Gemini, Claude
+- Local GGUF LLM via Ollama for simple tasks (no GPU, CPU inference)
 
-## Estructura del Repositorio
+## Repository Structure
 
 ```
 AgentMarce/
-├── README.md                    # Este archivo
+├── README.md                    # This file
 ├── docs/
-│   ├── 01-arquitectura.md       # Diagrama y logica del sistema
-│   ├── 02-llm-local.md          # Configuracion de IA local (CPU)
-│   ├── 03-recursos.md           # Asignacion de recursos del Dell 3640
-│   ├── 04-sprint-backlog.md     # Plan de implementacion detallado
-│   ├── 05-seguridad.md          # Consideraciones de seguridad
-│   └── 06-primeros-pasos.md     # Guia de arranque (Dia 0)
+│   ├── 01-architecture.md       # System diagram and logic
+│   ├── 02-local-llm.md          # Local AI configuration (CPU)
+│   ├── 03-resources.md          # Resource allocation for the Dell 3640
+│   ├── 04-sprint-backlog.md     # Detailed implementation plan
+│   ├── 05-security.md           # Security considerations
+│   └── 06-getting-started.md    # Day 0 quickstart guide
 └── code/
-    ├── agent.py                 # Agente principal (Google ADK)
-    ├── api_server.py            # Servidor FastAPI para n8n
-    ├── docker-compose.yml       # Ollama con limites de recursos
-    ├── Modelfile                # Configuracion del modelo GGUF
-    ├── marce-agent.service      # Servicio systemd
-    ├── .env.example             # Variables de entorno (plantilla)
+    ├── agent.py                 # Main agent (Google ADK)
+    ├── api_server.py            # FastAPI server for n8n
+    ├── docker-compose.yml       # Ollama with resource limits
+    ├── Modelfile                # GGUF model configuration
+    ├── marce-agent.service      # systemd service unit
+    ├── .env.example             # Environment variables template
     └── tools/
-        ├── google_tools.py      # Herramientas Gmail/Calendar/Drive
-        └── collect_logs.sh      # Script de recoleccion de logs
+        ├── google_tools.py      # Gmail / Calendar / Drive tools
+        └── collect_logs.sh      # Daily log collection script
 ```
 
-## Inicio Rapido
+## Quick Start
 
-Lee primero la [Guia de Primeros Pasos](docs/06-primeros-pasos.md) antes de cualquier otra cosa.
+Read the [Getting Started Guide](docs/06-getting-started.md) before anything else.
 
-Luego sigue el orden:
-1. [Arquitectura del Sistema](docs/01-arquitectura.md)
-2. [Configuracion de IA Local](docs/02-llm-local.md)
-3. [Asignacion de Recursos](docs/03-recursos.md)
+Then follow this order:
+1. [System Architecture](docs/01-architecture.md)
+2. [Local AI Configuration](docs/02-local-llm.md)
+3. [Resource Allocation](docs/03-resources.md)
 4. [Sprint Backlog](docs/04-sprint-backlog.md)
-5. [Seguridad](docs/05-seguridad.md)
+5. [Security](docs/05-security.md)
 
-## Stack Tecnologico
+## Tech Stack
 
-| Capa | Tecnologia | Proposito |
+| Layer | Technology | Purpose |
 |---|---|---|
-| Agente | Google ADK (Antigravity) | Orquestacion, herramientas, memoria |
-| Automatizacion | n8n | Conectar APIs, webhooks, scheduler |
-| LLM Local | Ollama + Qwen2.5-1.5B Q4 | Tareas simples, sin coste, baja latencia |
-| LLM Rapido | Groq (Llama 3.3 70B) | Analisis de logs, razonamiento (gratis) |
-| LLM Fallback | OpenRouter | Acceso a Claude/GPT/Gemini |
-| API REST | FastAPI + Uvicorn | Interfaz entre n8n y el agente Python |
-| Contenedores | Docker + Docker Compose | Aislamiento de servicios |
-| OS VM | Ubuntu Server 24.04 LTS | Sistema operativo de la VM del agente |
+| Agent | Google ADK (Antigravity) | Orchestration, tools, memory |
+| Automation | n8n | API connectors, webhooks, scheduler |
+| Local LLM | Ollama + Qwen2.5-1.5B Q4 | Simple tasks, zero cost, low latency |
+| Fast LLM | Groq (Llama 3.3 70B) | Log analysis, reasoning (free tier) |
+| Fallback LLM | OpenRouter | Access to Claude/GPT/Gemini |
+| REST API | FastAPI + Uvicorn | Interface between n8n and the Python agent |
+| Containers | Docker + Docker Compose | Service isolation |
+| VM OS | Ubuntu Server 24.04 LTS | Agent VM operating system |
 
 ---
 
-> Proyecto personal de homelab. No tiene afiliacion con Google ni con ninguno de los proveedores de LLM mencionados.
+> Personal homelab project. Not affiliated with Google or any of the LLM providers mentioned.

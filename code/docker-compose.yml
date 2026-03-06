@@ -1,8 +1,8 @@
 version: '3.8'
 
 # ============================================================
-# Ollama - LLM Local con limites de recursos para CPU-only
-# Dell Precision 3640 / i7-10700 sin GPU
+# Ollama - Local LLM with resource limits for CPU-only setup
+# Dell Precision 3640 / i7-10700, no GPU
 # ============================================================
 
 services:
@@ -10,25 +10,25 @@ services:
     image: ollama/ollama:latest
     container_name: ollama-cpu
     ports:
-      # Solo escucha en localhost, no exponer al exterior
+      # Only listen on localhost — do not expose to the network
       - "127.0.0.1:11434:11434"
     volumes:
       - ./models:/root/.ollama
     environment:
-      # Solo 1 request en paralelo (evita saturar CPU)
+      # Process only 1 request at a time (avoids CPU saturation)
       - OLLAMA_NUM_PARALLEL=1
-      # Solo 1 modelo cargado en RAM a la vez
+      # Only 1 model loaded in RAM at a time
       - OLLAMA_MAX_LOADED_MODELS=1
-      # Descarga el modelo de RAM si inactivo 5 minutos
+      # Unload the model from RAM after 5 minutes of inactivity
       - OLLAMA_KEEP_ALIVE=5m
-      # Forzar uso de CPU (no busca GPU)
+      # Force CPU usage (do not search for a GPU)
       - OLLAMA_GPU_OVERHEAD=0
     deploy:
       resources:
         limits:
-          # Maximo 4 threads del i7-10700
+          # Maximum 4 threads from the i7-10700
           cpus: '4'
-          # Maximo 3 GB RAM (modelo 1.5B usa ~1.1 GB)
+          # Maximum 3 GB RAM (1.5B model uses ~1.1 GB)
           memory: 3G
         reservations:
           memory: 512M
